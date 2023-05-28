@@ -4,7 +4,7 @@ use crate::objects::{Circle, Line, Point};
 
 use super::{
     constants::EPSILON,
-    constructs::perp_bisect,
+    construct::perp_bisect,
     exception::{CalcException, Result},
 };
 
@@ -59,12 +59,6 @@ impl Line {
             })
         }
     }
-
-    /// Test if the Line is through a Point.
-    #[inline]
-    pub fn is_through(self, P: Point) -> bool {
-        aprx_eq(self.a * P.x + self.b * P.y + self.c, 0.0)
-    }
 }
 
 impl Circle {
@@ -96,12 +90,6 @@ impl Circle {
         let O = perp_bisect(A, B)?.inter(perp_bisect(B, C)?)?;
         let r = O.distance(A);
         Ok(Circle { O, r })
-    }
-
-    /// Test if the Line is through a Point.
-    #[inline]
-    pub fn is_through(self, p: Point) -> bool {
-        aprx_eq(self.r * self.r, self.O.distance_sq(p))
     }
 }
 
@@ -330,5 +318,27 @@ impl Intersect<Circle> for Circle {
     #[inline]
     fn inter_common(self, obj: Circle, common: Point) -> Result<Self::InterResult> {
         radical_axis(self, obj).inter_common(obj, common)
+    }
+}
+
+/// A trait for testing whether an object passes through an instance of `T`.
+/// Provides the `is_through` method.
+pub trait TestThrough<T> {
+    fn is_through(self, P: T) -> bool;
+}
+
+impl TestThrough<Point> for Line {
+    /// Test if the Line is through a Point.
+    #[inline]
+    fn is_through(self, P: Point) -> bool {
+        aprx_eq(self.a * P.x + self.b * P.y + self.c, 0.0)
+    }
+}
+
+impl TestThrough<Point> for Circle {
+    /// Test if the Circle is through a Point.
+    #[inline]
+    fn is_through(self, p: Point) -> bool {
+        aprx_eq(self.r * self.r, self.O.distance_sq(p))
     }
 }

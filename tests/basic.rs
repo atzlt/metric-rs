@@ -2,7 +2,7 @@
 
 use metric::{
     objects::{Point, Line, Circle},
-    calc::{basic::{Intersect, is_parallel}, exception::CalcException},
+    calc::{basic::{Intersect, is_parallel, TestThrough}, exception::CalcException},
 };
 
 #[test]

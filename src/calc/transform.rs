@@ -3,8 +3,8 @@
 use crate::objects::{Circle, Line, Point};
 
 use super::{
-    basic::{is_parallel, Distance, Intersect},
-    constructs::{midpoint, perp, projection},
+    basic::{is_parallel, Distance, Intersect, TestThrough},
+    construct::{midpoint, perp, projection},
     exception::{CalcException, Result},
 };
 
@@ -191,6 +191,43 @@ impl Rotate for Circle {
     /// Rotate a Circle around a Point by angle.
     #[inline]
     fn rotate(self, O: Point, angle: f64) -> Self {
-        Circle { O: self.O.rotate(O, angle), r: self.r }
+        Circle {
+            O: self.O.rotate(O, angle),
+            r: self.r,
+        }
+    }
+}
+
+/// A trait for scaling.
+pub trait Scale {
+    /// Scale an object with center `O` and ratio `r`.
+    fn scale(self, O: Point, r: f64) -> Self;
+}
+
+impl Scale for Point {
+    #[inline]
+    fn scale(self, O: Point, r: f64) -> Self {
+        self * r - O * (r - 1.0)
+    }
+}
+
+impl Scale for Line {
+    #[inline]
+    fn scale(self, O: Point, r: f64) -> Self {
+        Line {
+            a: self.a,
+            b: self.b,
+            c: (self.a * O.x + self.b * O.y) * (r - 1.0) + self.c * r,
+        }
+    }
+}
+
+impl Scale for Circle {
+    #[inline]
+    fn scale(self, center: Point, ratio: f64) -> Self {
+        Circle {
+            O: self.O.scale(center, ratio),
+            r: self.r * ratio,
+        }
     }
 }
