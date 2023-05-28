@@ -2,7 +2,7 @@
 
 use metric::{
     objects::{Point, Line, Circle},
-    calc::basic::{Intersect, GObjectConstructionErr, is_parallel},
+    calc::{basic::{Intersect, is_parallel}, exception::CalcException},
 };
 
 #[test]
@@ -22,10 +22,10 @@ fn objects_def() {
     assert!(c == c0);
     assert_eq!(c.r, (0.5f64).sqrt());
     let E = Point::new(0.0, 1.0);
-    assert_eq!(Line::from_2p(B, E), Err(GObjectConstructionErr::OverlappingPoint));
-    assert_eq!(Circle::from_3p(A, B, E), Err(GObjectConstructionErr::OverlappingPoint));
-    assert_eq!(Circle::from_3p(A, O, D), Err(GObjectConstructionErr::CollinearPoints));
-    assert_eq!(Circle::from_center_radius(O, 0.0), Err(GObjectConstructionErr::NonpositiveRadius));
+    assert_eq!(Line::from_2p(B, E).unwrap_err(), CalcException::OverlappingPoint);
+    assert_eq!(Circle::from_3p(A, B, E).unwrap_err(), CalcException::OverlappingPoint);
+    assert_eq!(Circle::from_3p(A, O, D).unwrap_err(), CalcException::NoIntersection);
+    assert_eq!(Circle::from_center_radius(O, 0.0).unwrap_err(), CalcException::NonpositiveRadius);
 }
 
 #[test]

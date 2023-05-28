@@ -1,10 +1,12 @@
+#![allow(non_snake_case)]
+
 use crate::objects::{Circle, Line, Point};
 
-use super::constructs::perp_bisect;
-
-const EPSILON: f64 = 1e-10;
-pub const DEG: f64 = std::f64::consts::PI / 180.0;
-pub const ROUND: f64 = 2.0 * std::f64::consts::PI;
+use super::{
+    constants::EPSILON,
+    constructs::perp_bisect,
+    exception::{CalcException, Result},
+};
 
 #[inline]
 fn aprx_eq(a: f64, b: f64) -> bool {
@@ -16,46 +18,150 @@ pub fn is_parallel(l: Line, k: Line) -> bool {
     aprx_eq(l.a * k.b, l.b * k.a)
 }
 
-pub trait DistanceTo<T>
+impl Point {
+    #[inline]
+    pub fn new(x: f64, y: f64) -> Self {
+        Point { x, y }
+    }
+}
+
+impl Line {
+    /// Construct new Line from coefficients: `ax + by + c = 0`.
+    /// `a` and `b` cannot be both zero.
+    #[inline]
+    pub fn from_coeff(a: f64, b: f64, c: f64) -> Result<Line> {
+        if a == 0.0 && b == 0.0 {
+            return Err(CalcException::ZeroCoefficient);
+        }
+        Ok(Line { a, b, c })
+    }
+    /// Construct new Line from two coefficients `ax + by + ?? = 0` and
+    /// a given point that the line passes.
+    #[inline]
+    pub fn from_slope_and_point(a: f64, b: f64, P: Point) -> Self {
+        Line {
+            a,
+            b,
+            c: -a * P.x - b * P.y,
+        }
+    }
+    /// Construct new Line passing through two Points.
+    /// If the two Points overlap return `OverlappingPoint` error.
+    #[inline]
+    pub fn from_2p(A: Point, B: Point) -> Result<Self> {
+        if A == B {
+            Err(CalcException::OverlappingPoint)
+        } else {
+            Ok(Line {
+                a: A.y - B.y,
+                b: B.x - A.x,
+                c: A.y * (A.x - B.x) - A.x * (A.y * B.y),
+            })
+        }
+    }
+
+    /// Test if the Line is through a Point.
+    #[inline]
+    pub fn is_through(self, P: Point) -> bool {
+        aprx_eq(self.a * P.x + self.b * P.y + self.c, 0.0)
+    }
+}
+
+impl Circle {
+    /// Construct a Circle with center `o` and radius `r`.
+    /// If the radius given is nonpositive return `NonpositiveRadius` error.
+    #[inline]
+    pub fn from_center_radius(O: Point, R: f64) -> Result<Self> {
+        if R <= 0.0 {
+            Err(CalcException::NonpositiveRadius)
+        } else {
+            Ok(Circle { O, r: R })
+        }
+    }
+    /// Construct a Circle with center `o` and a point it passes through `a`.
+    #[inline]
+    pub fn from_center_point(O: Point, A: Point) -> Result<Self> {
+        if O == A {
+            Err(CalcException::OverlappingPoint)
+        } else {
+            Ok(Circle {
+                O,
+                r: O.distance(A),
+            })
+        }
+    }
+    /// Construct a Circle passing through three Points.
+    /// If any two of them overlap return `OverlappingPoint` error.
+    pub fn from_3p(A: Point, B: Point, C: Point) -> Result<Self> {
+        let O = perp_bisect(A, B)?.inter(perp_bisect(B, C)?)?;
+        let r = O.distance(A);
+        Ok(Circle { O, r })
+    }
+
+    /// Test if the Line is through a Point.
+    #[inline]
+    pub fn is_through(self, p: Point) -> bool {
+        aprx_eq(self.r * self.r, self.O.distance_sq(p))
+    }
+}
+
+/// A trait for computing distance.
+/// The `distance_sq` function _must_ be implemented. The `distance` function is computed
+/// using `distance_sq`, so its implementation is hence optional.
+pub trait Distance<T>
 where
     Self: Sized,
 {
     /// The square of the distance.
     fn distance_sq(self, obj: T) -> f64;
+
+    /// The distance
     #[inline]
     fn distance(self, obj: T) -> f64 {
         self.distance_sq(obj).sqrt()
     }
 }
 
-impl DistanceTo<Point> for Point {
-    fn distance_sq(self, obj: Point) -> f64 {
-        let dx = self.x - obj.x;
-        let dy = self.y - obj.y;
+impl Distance<Point> for Point {
+    fn distance_sq(self, P: Point) -> f64 {
+        let dx = self.x - P.x;
+        let dy = self.y - P.y;
         dx * dx + dy * dy
     }
 }
 
-impl DistanceTo<Line> for Point {
-    fn distance_sq(self, obj: Line) -> f64 {
-        let z = self.x * obj.a + self.y * obj.b + obj.c;
-        z * z / (obj.a * obj.a + obj.b * obj.b)
+impl Distance<Line> for Point {
+    fn distance_sq(self, l: Line) -> f64 {
+        let z = self.x * l.a + self.y * l.b + l.c;
+        z * z / (l.a * l.a + l.b * l.b)
     }
 }
 
-impl DistanceTo<Line> for Line {
-    fn distance_sq(self, obj: Line) -> f64 {
-        if !is_parallel(self, obj) {
+impl Distance<Line> for Line {
+    fn distance_sq(self, l: Line) -> f64 {
+        if !is_parallel(self, l) {
             0.0
         } else {
-            let z = self.c - obj.c;
+            let z = self.c - l.c;
             z * z / (self.a * self.a + self.b * self.b)
         }
     }
 }
 
+/// The angle defined by three points, the one in `[0, pi / 2]`.
+pub fn angle(A: Point, O: Point, B: Point) -> Result<f64> {
+    if A == O || B == O {
+        return Err(CalcException::OverlappingPoint);
+    }
+    let (dx1, dy1, dx2, dy2) = (A.y - O.y, O.x - A.x, B.y - O.y, O.x - B.x);
+    let a = dx1 * dx1 + dy1 * dy1;
+    let b = dx2 * dx2 + dy2 * dy2;
+    let p = (dx1 * dx2 + dy1 * dy2) / (a * b).sqrt();
+    Ok(p.acos())
+}
+
 /// The angle between two lines, the one in `[0, pi / 2]`.
-pub fn angle(l: Line, k: Line) -> f64 {
+pub fn angle_between(l: Line, k: Line) -> f64 {
     let (a, b) = (l.a, l.b);
     let (c, d) = (k.a, k.b);
     let a0 = a * a + b * b;
@@ -66,7 +172,7 @@ pub fn angle(l: Line, k: Line) -> f64 {
 
 impl std::cmp::PartialEq for Point {
     /// If two Points are _approximately_ equal.
-    /// Here _approximately_ roughly means `1e-10` error.
+    /// We say _approximately_ because there could be error.
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         aprx_eq(self.x, other.x) && aprx_eq(self.y, other.y)
@@ -75,7 +181,7 @@ impl std::cmp::PartialEq for Point {
 
 impl std::cmp::PartialEq for Line {
     /// If two Lines _approximately_ overlaps.
-    /// Here _approximately_ roughly means `1e-10` error.
+    /// We say _approximately_ because there could be error.
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         is_parallel(*self, *other) && aprx_eq(self.c, other.c)
@@ -84,10 +190,10 @@ impl std::cmp::PartialEq for Line {
 
 impl std::cmp::PartialEq for Circle {
     /// If two Circles _approximately_ overlaps.
-    /// Here _approximately_ roughly means `1e-10` error.
+    /// We say _approximately_ because there could be error.
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.o == other.o && aprx_eq(self.r, other.r)
+        self.O == other.O && aprx_eq(self.r, other.r)
     }
 }
 
@@ -98,119 +204,116 @@ pub trait Intersect<T> {
     /// Use `Option` because there might be no intersections.
     type InterResult;
     /// Intersection.
-    fn inter(self, obj: T) -> Self::InterResult;
+    fn inter(self, obj: T) -> Result<Self::InterResult>;
     /// Intersection _with a common point given_.
     /// This can simplify calculation (using Vieta's theorem).
     /// **Do notice that** this common point will _directly_ affect the result.
     /// If a wrong common point is given the result will be _totally wrong_.
     /// The given common point is always the last element of the tuple.
-    fn inter_common(self, _: T, common: Point) -> Self::InterResult;
+    fn inter_common(self, _: T, common: Point) -> Result<Self::InterResult>;
 }
 
 impl Intersect<Line> for Line {
-    type InterResult = Option<Point>;
-    fn inter(self, obj: Line) -> Self::InterResult {
+    type InterResult = Point;
+    fn inter(self, obj: Line) -> Result<Self::InterResult> {
         if is_parallel(self, obj) {
-            None
+            Err(CalcException::NoIntersection)
         } else {
             let a = self.b * obj.c - obj.b * self.c;
             let b = self.c * obj.a - obj.c * self.a;
             let d = self.a * obj.b - obj.a * self.b;
-            Some(Point { x: a / d, y: b / d })
+            Ok(Point { x: a / d, y: b / d })
         }
     }
     #[inline]
-    fn inter_common(self, _: Line, common: Point) -> Self::InterResult {
-        Some(common)
+    fn inter_common(self, _: Line, common: Point) -> Result<Self::InterResult> {
+        Ok(common)
     }
 }
 
 impl Intersect<Circle> for Line {
-    type InterResult = (Option<Point>, Option<Point>);
-    fn inter(self, obj: Circle) -> Self::InterResult {
-        let Circle { o, r } = obj;
+    type InterResult = (Point, Point);
+    fn inter(self, obj: Circle) -> Result<Self::InterResult> {
+        let Circle { O, r } = obj;
         let Line { a, b, c } = self;
         if a != 0.0 {
             let ya = a * a + b * b;
-            let yb = 2.0 * ((a * o.x + c) * b - a * a * o.y);
-            let yc = a * a * (o.x * o.x - r * r) + (a * o.x + c) * (a * o.x + c);
+            let yb = 2.0 * ((a * O.x + c) * b - a * a * O.y);
+            let yc = a * a * (O.x * O.x - r * r) + (a * O.x + c) * (a * O.x + c);
             let disc = yb * yb - 4.0 * ya * yc;
             if disc < 0.0 {
-                return (None, None);
+                return Err(CalcException::NoIntersection);
             }
             let y1 = (-yb + disc) / ya / 2.0;
             let y2 = (-yb - disc) / ya / 2.0;
-            (
-                Some(Point {
+            Ok((
+                Point {
                     x: -(b * y1 + c) / a,
                     y: y1,
-                }),
-                Some(Point {
+                },
+                Point {
                     x: -(b * y2 + c) / a,
                     y: y2,
-                }),
-            )
+                },
+            ))
         } else {
             let xa = b * b;
-            let xb = -2.0 * b * b * o.x;
-            let xc = b * b * (o.x * o.x - r * r) + (b * o.x + c) * (b * o.x + c);
+            let xb = -2.0 * b * b * O.x;
+            let xc = b * b * (O.x * O.x - r * r) + (b * O.x + c) * (b * O.x + c);
             let disc = xb * xb - 4.0 * xa * xc;
             if disc < 0.0 {
-                return (None, None);
+                return Err(CalcException::NoIntersection);
             }
             let x1 = (-xb + disc) / xa / 2.0;
             let x2 = (-xb - disc) / xa / 2.0;
-            (
-                Some(Point { x: x1, y: -c / b }),
-                Some(Point { x: x2, y: -c / b }),
-            )
+            Ok((Point { x: x1, y: -c / b }, Point { x: x2, y: -c / b }))
         }
     }
-    fn inter_common(self, obj: Circle, common: Point) -> Self::InterResult {
-        let o = obj.o;
+    fn inter_common(self, obj: Circle, common: Point) -> Result<Self::InterResult> {
+        let O = obj.O;
         let Line { a, b, c } = self;
         if a != 0.0 {
             let ya = a * a + b * b;
-            let yb = 2.0 * ((a * o.x + c) * b - a * a * o.y);
+            let yb = 2.0 * ((a * O.x + c) * b - a * a * O.y);
             let y2 = -yb / ya - common.y;
-            (
-                Some(Point {
+            Ok((
+                Point {
                     x: -(b * y2 + c) / a,
                     y: y2,
-                }),
-                Some(common),
-            )
+                },
+                common,
+            ))
         } else {
             let xa = b * b;
-            let xb = -2.0 * b * b * o.x;
+            let xb = -2.0 * b * b * O.x;
             let x2 = -xb / xa - common.x;
-            (Some(Point { x: x2, y: -c / b }), Some(common))
+            Ok((Point { x: x2, y: -c / b }, common))
         }
     }
 }
 
 impl Intersect<Line> for Circle {
-    type InterResult = (Option<Point>, Option<Point>);
+    type InterResult = (Point, Point);
     #[inline]
-    fn inter(self, obj: Line) -> Self::InterResult {
+    fn inter(self, obj: Line) -> Result<Self::InterResult> {
         obj.inter(self)
     }
     #[inline]
-    fn inter_common(self, obj: Line, common: Point) -> Self::InterResult {
+    fn inter_common(self, obj: Line, common: Point) -> Result<Self::InterResult> {
         obj.inter_common(self, common)
     }
 }
 
 /// The radical axis of two Circles.
 pub fn radical_axis(c: Circle, d: Circle) -> Line {
-    let o = c.o;
-    let p = d.o;
-    let d1 = -2.0 * o.x;
-    let e1 = -2.0 * o.y;
-    let f1 = o.x * o.x + o.y * o.y - c.r * c.r;
-    let d2 = -2.0 * p.x;
-    let e2 = -2.0 * p.y;
-    let f2 = p.x * p.x + p.y * p.y - d.r * d.r;
+    let O = c.O;
+    let P = d.O;
+    let d1 = -2.0 * O.x;
+    let e1 = -2.0 * O.y;
+    let f1 = O.x * O.x + O.y * O.y - c.r * c.r;
+    let d2 = -2.0 * P.x;
+    let e2 = -2.0 * P.y;
+    let f2 = P.x * P.x + P.y * P.y - d.r * d.r;
     Line {
         a: d1 - d2,
         b: e1 - e2,
@@ -219,112 +322,13 @@ pub fn radical_axis(c: Circle, d: Circle) -> Line {
 }
 
 impl Intersect<Circle> for Circle {
-    type InterResult = (Option<Point>, Option<Point>);
+    type InterResult = (Point, Point);
     #[inline]
-    fn inter(self, obj: Circle) -> Self::InterResult {
+    fn inter(self, obj: Circle) -> Result<Self::InterResult> {
         radical_axis(self, obj).inter(obj)
     }
     #[inline]
-    fn inter_common(self, obj: Circle, common: Point) -> Self::InterResult {
+    fn inter_common(self, obj: Circle, common: Point) -> Result<Self::InterResult> {
         radical_axis(self, obj).inter_common(obj, common)
     }
-}
-
-impl Point {
-    #[inline]
-    pub fn new(x: f64, y: f64) -> Self {
-        Point { x, y }
-    }
-}
-
-impl Line {
-    /// Construct new Line from coefficients: `ax + by + c = 0`.
-    #[inline]
-    pub fn from_coeff(a: f64, b: f64, c: f64) -> Line {
-        Line { a, b, c }
-    }
-    /// Construct new Line from two coefficients `ax + by + ?? = 0` and
-    /// a given point that the line passes.
-    #[inline]
-    pub fn from_slope_and_point(a: f64, b: f64, p: Point) -> Self {
-        Line {
-            a,
-            b,
-            c: -a * p.x - b * p.y,
-        }
-    }
-    /// Construct new Line passing through two Points.
-    /// If the two Points overlap return `OverlappingPoint` error.
-    #[inline]
-    pub fn from_2p(a: Point, b: Point) -> Result<Self, GObjectConstructionErr> {
-        if a == b {
-            Err(GObjectConstructionErr::OverlappingPoint)
-        } else {
-            Ok(Line {
-                a: a.y - b.y,
-                b: b.x - a.x,
-                c: a.y * (a.x - b.x) - a.x * (a.y * b.y),
-            })
-        }
-    }
-
-    /// Test if the Line is through a Point.
-    #[inline]
-    pub fn is_through(self, p: Point) -> bool {
-        aprx_eq(self.a * p.x + self.b * p.y + self.c, 0.0)
-    }
-}
-
-impl Circle {
-    /// Construct a Circle with center `o` and radius `r`.
-    /// If the radius given is nonpositive return `NonpositiveRadius` error.
-    #[inline]
-    pub fn from_center_radius(o: Point, r: f64) -> Result<Self, GObjectConstructionErr> {
-        if r <= 0.0 {
-            Err(GObjectConstructionErr::NonpositiveRadius)
-        } else {
-            Ok(Circle { o, r })
-        }
-    }
-    /// Construct a Circle with center `o` and a point it passes through `a`.
-    #[inline]
-    pub fn from_center_point(o: Point, a: Point) -> Result<Self, GObjectConstructionErr> {
-        if o == a {
-            Err(GObjectConstructionErr::NonpositiveRadius)
-        } else {
-            Ok(Circle {
-                o,
-                r: o.distance(a),
-            })
-        }
-    }
-    /// Construct a Circle passing through three Points.
-    /// If any two of them overlap return `OverlappingPoint` error.
-    pub fn from_3p(a: Point, b: Point, c: Point) -> Result<Self, GObjectConstructionErr> {
-        if a == b || b == c || c == a {
-            Err(GObjectConstructionErr::OverlappingPoint)
-        } else {
-            let o = perp_bisect(a, b).inter(perp_bisect(b, c));
-            if o == None {
-                Err(GObjectConstructionErr::CollinearPoints)
-            } else {
-                let o = o.unwrap();
-                let r = o.distance(a);
-                Ok(Circle { o, r })
-            }
-        }
-    }
-
-    /// Test if the Line is through a Point.
-    #[inline]
-    pub fn is_through(self, p: Point) -> bool {
-        aprx_eq(self.r * self.r, self.o.distance_sq(p))
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum GObjectConstructionErr {
-    OverlappingPoint,
-    NonpositiveRadius,
-    CollinearPoints,
 }

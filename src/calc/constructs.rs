@@ -1,9 +1,13 @@
+#![allow(non_snake_case)]
+
 use crate::objects::{Line, Point};
+
+use super::exception::Result;
 
 /// Construct midpoint.
 #[inline]
-pub fn midpoint(a: Point, b: Point) -> Point {
-    (a + b) / 2.0
+pub fn midpoint(A: Point, B: Point) -> Point {
+    (A + B) / 2.0
 }
 
 /// Construct center of polygon.
@@ -17,39 +21,39 @@ pub fn center(poly: &Vec<Point>) -> Point {
 
 /// Construct parallel line through a Point.
 #[inline]
-pub fn parallel(a: Point, l: Line) -> Line {
+pub fn parallel(A: Point, l: Line) -> Line {
     Line {
         a: l.a,
         b: l.b,
-        c: -(l.a * a.x + l.b * a.y),
+        c: -(l.a * A.x + l.b * A.y),
     }
 }
 
 /// Construct perpendicular line through a Point.
 #[inline]
-pub fn perp(a: Point, l: Line) -> Line {
+pub fn perp(A: Point, l: Line) -> Line {
     Line {
         a: -l.b,
         b: l.a,
-        c: l.b * a.x - l.a * a.y,
+        c: l.b * A.x - l.a * A.y,
     }
 }
 
 /// Construct the projection of a Point on a Line.
-pub fn projection(p: Point, l: Line) -> Point {
+pub fn projection(A: Point, l: Line) -> Point {
     let Line { a, b, c } = l;
     let n = a * a + b * b;
     Point {
-        x: (b * b * p.x - a * c - a * b * p.y) / n,
-        y: (a * a * p.y - b * c - a * b * p.x) / n,
+        x: (b * b * A.x - a * c - a * b * A.y) / n,
+        y: (a * a * A.y - b * c - a * b * A.x) / n,
     }
 }
 
 /// Construct the perpendicular bisector of two points.
 /// **Panicks when two points are the same.**
 #[inline]
-pub fn perp_bisect(a: Point, b: Point) -> Line {
-    perp(midpoint(a, b), Line::from_2p(a, b).unwrap())
+pub fn perp_bisect(A: Point, B: Point) -> Result<Line> {
+    Ok(perp(midpoint(A, B), Line::from_2p(A, B)?))
 }
 
 /// Constructs the two angle bisectors of two lines.
@@ -77,6 +81,6 @@ pub fn angle_bisect(l: Line, k: Line) -> (Line, Line) {
 /// Constructs the two angle bisectors of an angle, interior first, exterior second.
 /// **Panicks if any point is overlapping with `o`.**
 #[inline]
-pub fn angle_bisect_3p(a: Point, o: Point, b: Point) -> (Line, Line) {
-    angle_bisect(Line::from_2p(o, a).unwrap(), Line::from_2p(o, b).unwrap())
+pub fn angle_bisect_3p(A: Point, O: Point, B: Point) -> Result<(Line, Line)> {
+    Ok(angle_bisect(Line::from_2p(O, A)?, Line::from_2p(O, B)?))
 }
