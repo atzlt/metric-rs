@@ -8,11 +8,13 @@ use super::{
     exception::{CalcException, Result},
 };
 
+/// Test if two floats are _almost_ equal.
 #[inline]
 fn aprx_eq(a: f64, b: f64) -> bool {
     (a - b).abs() < EPSILON
 }
 
+/// Test if two lines are parallel.
 #[inline]
 pub fn is_parallel(l: Line, k: Line) -> bool {
     aprx_eq(l.a * k.b, l.b * k.a)

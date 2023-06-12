@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use metric::{
+use metric_rs::{
     objects::{Point, Line, Circle},
     calc::{basic::{Intersect, is_parallel, TestThrough}, exception::CalcException},
 };
