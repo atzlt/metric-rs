@@ -1,6 +1,6 @@
 [package]
 name = "metric-rs"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A crate for basic calculation functionalities related to Euclidean geometry. A rust port of `Metric` TypeScript package."
 license = "MIT"

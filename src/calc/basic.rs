@@ -57,7 +57,7 @@ impl Line {
             Ok(Line {
                 a: A.y - B.y,
                 b: B.x - A.x,
-                c: A.y * (A.x - B.x) - A.x * (A.y * B.y),
+                c: A.x * B.y - A.y * B.x,
             })
         }
     }

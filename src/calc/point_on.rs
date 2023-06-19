@@ -8,6 +8,7 @@ pub trait PointOn {
 
 impl PointOn for Circle {
     /// Construct a point `A` on circle, by the angle `AOx`.
+    #[inline]
     fn point_on(self, angle: f64) -> Point {
         Point {
             x: self.O.x + self.r * angle.cos(),
