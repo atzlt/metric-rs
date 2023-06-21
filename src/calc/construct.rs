@@ -79,7 +79,6 @@ pub fn angle_bisect(l: Line, k: Line) -> (Line, Line) {
 }
 
 /// Constructs the two angle bisectors of an angle, interior first, exterior second.
-/// **Panicks if any point is overlapping with `o`.**
 #[inline]
 pub fn angle_bisect_3p(A: Point, O: Point, B: Point) -> Result<(Line, Line)> {
     Ok(angle_bisect(Line::from_2p(O, A)?, Line::from_2p(O, B)?))
