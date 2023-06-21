@@ -234,6 +234,7 @@ impl Intersect<Circle> for Line {
             if disc < 0.0 {
                 return Err(CalcException::NoIntersection);
             }
+            let disc = disc.sqrt();
             let y1 = (-yb + disc) / ya / 2.0;
             let y2 = (-yb - disc) / ya / 2.0;
             Ok((
@@ -254,6 +255,7 @@ impl Intersect<Circle> for Line {
             if disc < 0.0 {
                 return Err(CalcException::NoIntersection);
             }
+            let disc = disc.sqrt();
             let x1 = (-xb + disc) / xa / 2.0;
             let x2 = (-xb - disc) / xa / 2.0;
             Ok((Point { x: x1, y: -c / b }, Point { x: x2, y: -c / b }))
