@@ -229,7 +229,7 @@ impl Intersect<Circle> for Line {
         if a != 0.0 {
             let ya = a * a + b * b;
             let yb = 2.0 * ((a * O.x + c) * b - a * a * O.y);
-            let yc = a * a * (O.x * O.x - r * r) + (a * O.x + c) * (a * O.x + c);
+            let yc = a * a * (O.y * O.y - r * r) + (a * O.x + c) * (a * O.x + c);
             let disc = yb * yb - 4.0 * ya * yc;
             if disc < 0.0 {
                 return Err(CalcException::NoIntersection);

@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use metric_rs::{
-    objects::{Point, Line, Circle},
-    calc::{basic::{Intersect, is_parallel, TestThrough}, exception::CalcException},
+    calc::{basic::*, exception::CalcException},
+    objects::*,
 };
 
 #[test]
@@ -22,10 +22,22 @@ fn objects_def() {
     assert!(c == c0);
     assert_eq!(c.r, (0.5f64).sqrt());
     let E = Point::new(0.0, 1.0);
-    assert_eq!(Line::from_2p(B, E).unwrap_err(), CalcException::OverlappingPoint);
-    assert_eq!(Circle::from_3p(A, B, E).unwrap_err(), CalcException::OverlappingPoint);
-    assert_eq!(Circle::from_3p(A, O, D).unwrap_err(), CalcException::NoIntersection);
-    assert_eq!(Circle::from_center_radius(O, 0.0).unwrap_err(), CalcException::NonpositiveRadius);
+    assert_eq!(
+        Line::from_2p(B, E).unwrap_err(),
+        CalcException::OverlappingPoint
+    );
+    assert_eq!(
+        Circle::from_3p(A, B, E).unwrap_err(),
+        CalcException::OverlappingPoint
+    );
+    assert_eq!(
+        Circle::from_3p(A, O, D).unwrap_err(),
+        CalcException::NoIntersection
+    );
+    assert_eq!(
+        Circle::from_center_radius(O, 0.0).unwrap_err(),
+        CalcException::NonpositiveRadius
+    );
 }
 
 #[test]
@@ -41,4 +53,17 @@ fn predicates() {
     assert!(is_parallel(l, k));
     assert!(c.is_through(C));
     assert!(!l0.is_through(C));
+}
+
+#[test]
+fn intersect() {
+    let A = Point::new(0.0, 0.0);
+    let B = Point::new(5.0, 0.0);
+    let c = Circle::from_center_radius(A, 3.0).unwrap();
+    let d = Circle::from_center_radius(B, 4.0).unwrap();
+    let (S, T) = c.inter(d).unwrap();
+    assert_eq!(S.y.abs(), 2.4);
+    assert_eq!(T.y.abs(), 2.4);
+    assert_eq!(S.x, T.x);
+    assert_eq!(S.x, 1.8);
 }
