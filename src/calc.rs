@@ -4,3 +4,4 @@ pub mod construct;
 pub mod point_on;
 pub mod transform;
 pub mod exception;
+pub mod trig;

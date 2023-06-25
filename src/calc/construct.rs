@@ -1,8 +1,11 @@
 #![allow(non_snake_case)]
 
-use crate::objects::{Line, Point};
+use crate::objects::{Circle, Line, Point};
 
-use super::exception::Result;
+use super::{
+    basic::{Intersect, TestThrough},
+    exception::{CalcException, Result},
+};
 
 /// Construct midpoint.
 #[inline]
@@ -50,7 +53,6 @@ pub fn projection(A: Point, l: Line) -> Point {
 }
 
 /// Construct the perpendicular bisector of two points.
-/// **Panicks when two points are the same.**
 #[inline]
 pub fn perp_bisect(A: Point, B: Point) -> Result<Line> {
     Ok(perp(midpoint(A, B), Line::from_2p(A, B)?))
@@ -82,4 +84,56 @@ pub fn angle_bisect(l: Line, k: Line) -> (Line, Line) {
 #[inline]
 pub fn angle_bisect_3p(A: Point, O: Point, B: Point) -> Result<(Line, Line)> {
     Ok(angle_bisect(Line::from_2p(O, A)?, Line::from_2p(O, B)?))
+}
+
+/// Construct the polar line of a point w.r.t. a circle.
+#[inline]
+pub fn polar_line(A: Point, c: Circle) -> Result<Line> {
+    let Point { x: x0, y: y0 } = A;
+    let Circle { O, r } = c;
+    let Point { x: a, y: b } = O;
+    Line::from_coeff(x0 - a, y0 - b, a * (a - x0) + b * (b - y0) - r * r)
+}
+
+/// Construct the tangent through a point.
+#[inline]
+pub fn tangent(A: Point, c: Circle) -> Result<(Line, Line)> {
+    if c.is_through(A) {
+        let l = perp(A, Line::from_2p(A, c.O)?);
+        Ok((l, l))
+    } else {
+        let (P, Q) = c.inter(polar_line(A, c)?)?;
+        Ok((Line::from_2p(A, P)?, Line::from_2p(A, Q)?))
+    }
+}
+
+/// Construct the homothetic center of two circles. The first being
+/// the outer one, the last the inner.
+#[inline]
+pub fn homothety_center(c: Circle, d: Circle) -> Result<(Point, Point)> {
+    if c.r == d.r {
+        Err(CalcException::Infinity)
+    } else {
+        let r1 = c.r;
+        let r2 = d.r;
+        Ok((
+            (c.O * r2 + d.O * r1) / (r1 + r2),
+            (d.O * r1 - c.O * r2) / (r1 - r2),
+        ))
+    }
+}
+
+/// Construct the two outer common tangents of two circles.
+#[inline]
+pub fn outer_common_tangent(c: Circle, d: Circle) -> Result<(Line, Line)> {
+    let (O, _) = homothety_center(c, d)?;
+    tangent(O, c)
+}
+
+
+/// Construct the two inner common tangents of two circles.
+#[inline]
+pub fn inner_common_tangent(c: Circle, d: Circle) -> Result<(Line, Line)> {
+    let (_, O) = homothety_center(c, d)?;
+    tangent(O, c)
 }
