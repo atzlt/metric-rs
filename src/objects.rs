@@ -1,6 +1,10 @@
 #![allow(non_snake_case)]
 
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 /// A struct representing a Point.
+#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
     pub x: f64,
@@ -66,6 +70,7 @@ impl std::ops::Div<f64> for Point {
 }
 
 /// A struct representing a Line, by its standard form `Ax + By + C = 0`.
+#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct Line {
     pub a: f64,
@@ -80,6 +85,7 @@ impl std::fmt::Display for Line {
 }
 
 /// A struct representing a Circle, by its center and radius.
+#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct Circle {
     pub O: Point,

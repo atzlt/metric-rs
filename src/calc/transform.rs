@@ -97,6 +97,7 @@ pub trait Invert {
 }
 
 /// The possible results of an inversion of a Line (or a Circle; they're the same).
+#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq)]
 pub enum LineInverted {
     Line(Line),

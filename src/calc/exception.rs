@@ -4,6 +4,7 @@ use std::fmt::Display;
 /// Most of them are about preventing division by zero, or other
 /// cases that are not well-defined, like "the" line through two
 /// overlapping points.
+#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Eq)]
 pub enum CalcException {
     /// Two points overlap when they shouldn't
