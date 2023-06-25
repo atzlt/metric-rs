@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 /// All kinds of exceptions that can occur in calculation.
 /// Most of them are about preventing division by zero, or other
 /// cases that are not well-defined, like "the" line through two

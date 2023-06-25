@@ -2,6 +2,9 @@
 
 use crate::objects::{Circle, Line, Point};
 
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 use super::{
     basic::{is_parallel, Distance, Intersect, TestThrough},
     construct::{midpoint, perp, projection},
